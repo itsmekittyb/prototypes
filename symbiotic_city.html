@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Symbiotic City: Eco Balance</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background-color: #f0f0f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        #game-container { background-color: #fff; border: 1px solid #ccc; border-radius: 8px; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        #ui { display: flex; gap: 15px; margin-bottom: 20px; }
+        .resource, .status { font-weight: bold; }
+        #game-world { width: 400px; height: 400px; background-color: #d0e0b0; border: 1px solid #bbb; display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(10, 1fr); }
+        .grid-cell { border: 1px solid #e0e0e0; box-sizing: border-box; display: flex; justify-content: center; align-items: center; }
+        .building { width: 80%; height: 80%; border-radius: 5px; display: flex; justify-content: center; align-items: center; font-size: 0.8em; color: white; cursor: pointer; }
+        .power-plant { background-color: #444; }
+        .house { background-color: #8b4513; }
+        .water-collector { background-color: #87ceeb; }
+        .farm { background-color: #a0faa0; }
+        .building-info { position: absolute; background-color: rgba(0, 0, 0, 0.8); color: white; padding: 5px; border-radius: 3px; font-size: 0.7em; display: none; }
+        button { margin: 5px; padding: 8px 12px; font-size: 16px; cursor: pointer; }
+        #game-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #game-title {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2e7d32; 
+            margin-bottom: 5px;
+        }
+        #game-description {
+            color: #555;
+            margin-bottom: 15px;
+        }
+        .building-icon {
+            width: 24px;
+            height: 24px;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="game-info">
+            <div id="game-title">Symbiotic City: Eco-Balance</div>
+            <div id="game-description">Build a sustainable city by balancing resources, environment, and citizen well-being.</div>
+        </div>
+        <div id="ui">
+            <div class="resource">Energy: <span id="energy">100</span></div>
+            <div class="resource">Water: <span id="water">100</span></div>
+            <div class="resource">Materials: <span id="materials">100</span></div>
+            <div class="resource">Food: <span id="food">50</span></div>
+            <div class="resource">Social Capital: <span id="social-capital">75</span></div>
+            <div class="status">Pollution: <span id="pollution">0</span></div>
+            <div class="status">Turn: <span id="turn">1</span></div>
+            <div>
+                <button onclick="setSelectedBuilding('house')"><img src="house.png" alt="House" class="building-icon">Build House (-5 Materials)</button>
+                <button onclick="setSelectedBuilding('power-plant')"><img src="power_plant.jpeg" alt="Power Plant" class="building-icon">Build Power Plant (-10 Materials)</button>
+                <button onclick="setSelectedBuilding('water-collector')"><img src="water_collector.png" alt="Water Collector" class="building-icon">Build Water Collector (-8 Materials)</button>
+                <button onclick="setSelectedBuilding('farm')"><img src="farm.png" alt="Farm" class="building-icon">Build Farm (-12 Materials)</button>
+            </div>
+            <button onclick="nextTurn()">Next Turn</button>
+        </div>
+        <div id="game-world"></div>
+        <div id="building-info" class="building-info"></div>
+    </div>
+
+    <script>
+        const energyDisplay = document.getElementById('energy');
+        const waterDisplay = document.getElementById('water');
+        const materialsDisplay = document.getElementById('materials');
+        const foodDisplay = document.getElementById('food');
+        const socialCapitalDisplay = document.getElementById('social-capital');
+        const pollutionDisplay = document.getElementById('pollution');
+        const turnDisplay = document.getElementById('turn');
+        const gameWorld = document.getElementById('game-world');
+        const buildingInfoDiv = document.getElementById('building-info');
+
+        let resources = {
+            energy: 100,
+            water: 100,
+            materials: 100,
+            food: 50,
+            socialCapital: 75
+        };
+
+        let pollution = 0;
+        let turn = 1;
+        let cityGrid = Array(10).fill(null).map(() => Array(10).fill(null));
+        let selectedBuilding = null;
+
+        const buildingCosts = {
+            'house': { materials: 5, socialCapitalEffect: 1 },
+            'power-plant': { materials: 10, pollutionEffect: 2 },
+            'water-collector': { materials: 8, waterEffect: 5 },
+            'farm': { materials: 12, foodEffect: 10 }
+        };
+
+        function updateUI() {
+            energyDisplay.textContent = Math.floor(resources.energy);
+            waterDisplay.textContent = Math.floor(resources.water);
+            materialsDisplay.textContent = Math.floor(resources.materials);
+            foodDisplay.textContent = Math.floor(resources.food);
+            socialCapitalDisplay.textContent = Math.floor(resources.socialCapital);
+            pollutionDisplay.textContent = Math.floor(pollution);
+            turnDisplay.textContent = turn;
+        }
+
+        function createGrid() {
+            gameWorld.innerHTML = '';
+            for (let i = 0; i < 10; i++) {
+                for (let j = 0; j < 10; j++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('grid-cell');
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.addEventListener('click', () => handleCellClick(i, j));
+                    gameWorld.appendChild(cell);
+                    if (cityGrid[i][j]) {
+                        placeExistingBuilding(i, j, cityGrid[i][j]);
+                    }
+                }
+            }
+        }
+
+        function placeExistingBuilding(row, col, type) {
+            const building = document.createElement('div');
+            building.classList.add('building', type);
+            building.textContent = type.split('-')[0].toUpperCase();
+            building.dataset.type = type;
+            building.addEventListener('mouseover', showBuildingInfo);
+            building.addEventListener('mouseout', hideBuildingInfo);
+            const cell = gameWorld.children[row * 10 + col];
+            cell.appendChild(building);
+        }
+
+        function setSelectedBuilding(buildingType) {
+            selectedBuilding = buildingType;
+            console.log(`Selected building: ${selectedBuilding}`);
+        }
+
+        function handleCellClick(row, col) {
+            if (selectedBuilding && !cityGrid[row][col]) {
+                const cost = buildingCosts[selectedBuilding];
+                if (resources.materials >= cost.materials) {
+                    resources.materials -= cost.materials;
+                    cityGrid[row][col] = selectedBuilding;
+                    createGrid(); // Re-render the grid to show the new building
+                    selectedBuilding = null;
+                    updateUI();
+                } else {
+                    alert("Not enough materials to build a " + selectedBuilding.split('-')[0]);
+                }
+            }
+        }
+
+        function nextTurn() {
+            turn++;
+
+            // Resource changes per turn based on buildings
+            for (let i = 0; i < 10; i++) {
+                for (let j = 0; j < 10; j++) {
+                    const buildingType = cityGrid[i][j];
+                    if (buildingType) {
+                        const cost = buildingCosts[buildingType];
+                        if (cost && cost.pollutionEffect) {
+                            pollution += cost.pollutionEffect;
+                        }
+                        if (cost && cost.waterEffect) {
+                            resources.water += cost.waterEffect;
+                        }
+                        if (cost && cost.foodEffect) {
+                            resources.food += cost.foodEffect;
+                        }
+                        if (cost && cost.socialCapitalEffect) {
+                            resources.socialCapital += cost.socialCapitalEffect;
+                        }
+                    }
+                }
+            }
+
+            // Natural resource changes (example)
+            resources.energy += 2;
+            resources.water -= 1;
+            resources.food -= Math.ceil(0.1 * Object.values(cityGrid).flat().filter(b => b === 'house').length); // Food consumption based on houses
+            resources.socialCapital -= pollution * 0.05; // Pollution reduces social capital
+
+            updateUI();
+        }
+
+        function showBuildingInfo(event) {
+            const buildingElement = event.target;
+            const buildingType = buildingElement.dataset.type;
+            const cost = buildingCosts[buildingType];
+            let infoText = buildingType.split('-')[0].toUpperCase() + ": ";
+            if (cost) {
+                if (cost.materials) infoText += "Mat: -" + cost.materials + " ";
+                if (cost.pollutionEffect) infoText += "Poll: +" + cost.pollutionEffect + "/turn ";
+                if (cost.waterEffect) infoText += "Water: +" + cost.waterEffect + "/turn ";
+                if (cost.foodEffect) infoText += "Food: +" + cost.foodEffect + "/turn ";
+                if (cost.socialCapitalEffect) infoText += "SC: +" + cost.socialCapitalEffect + "/turn ";
+            }
+            buildingInfoDiv.textContent = infoText;
+            buildingInfoDiv.style.display = 'block';
+            buildingInfoDiv.style.left = event.clientX + 10 + 'px';
+            buildingInfoDiv.style.top = event.clientY + 10 + 'px';
+        }
+
+        function hideBuildingInfo() {
+            buildingInfoDiv.style.display = 'none';
+        }
+
+        createGrid();
+        updateUI();
+    </script>
+</body>
+</html>
+   
