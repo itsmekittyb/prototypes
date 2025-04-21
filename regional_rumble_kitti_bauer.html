@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Victory Road: Regional Rumble</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background: #f0f8e0; 
+            padding: 30px;
+            color: #333; 
+        }
+        h1 {
+            color: #2e7d32; 
+            margin-bottom: 20px;
+        }
+        #game {
+            background: #fff; 
+            padding: 25px;
+            border-radius: 12px;
+            width: 500px;
+            margin: auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid #e0e0e0;
+        }
+        .region-info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .region {
+            flex: 1;
+            padding: 8px;
+            border-radius: 6px;
+        }
+        .your-region { background-color: #c8e6c9; color: #1b5e20; } 
+        .opponent-region { background-color: #ffcdd2; color: #b71c1c; } 
+        button {
+            margin: 8px;
+            padding: 12px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background-color: #4caf50; 
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #388e3c; 
+        }
+        #chart_div {
+            width: 100%;
+            height: 350px;
+            margin-top: 30px;
+        }
+        #status {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #d32f2f; 
+        }
+        #logo {
+            max-width: 150px;
+            height: auto;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Victory Road: Regional Rumble</h1>
+    <img id="logo" src="election_logo.png" alt="Election Campaign Logo">
+    <div id="game">
+        <p><b>Campaign Funds:</b> $<span id="funds">10000</span></p>
+        <div class="region-info">
+            <div class="region your-region"><b>Your Urban:</b> <span id="urbanSupporters">100</span></div>
+            <div class="region your-region"><b>Your Suburban:</b> <span id="suburbanSupporters">100</span></div>
+            <div class="region your-region"><b>Your Rural:</b> <span id="ruralSupporters">100</span></div>
+        </div>
+        <div class="region-info">
+            <div class="region opponent-region"><b>Opponent Urban:</b> <span id="opponentUrban">100</span></div>
+            <div class="region opponent-region"><b>Opponent Suburban:</b> <span id="opponentSuburban">100</span></div>
+            <div class="region opponent-region"><b>Opponent Rural:</b> <span id="opponentRural">100</span></div>
+        </div>
+        <p><b>Election Turn:</b> <span id="turn">1</span> / 50</p>
+
+        <button onclick="campaign('urbanRally')">Urban Rally ($200)</button>
+        <button onclick="campaign('suburbanRally')">Suburban Rally ($200)</button>
+        <button onclick="campaign('ruralRally')">Rural Rally ($200)</button><br>
+        <button onclick="campaign('urbanAds')">Urban Ads ($300)</button>
+        <button onclick="campaign('suburbanAds')">Suburban Ads ($300)</button>
+        <button onclick="campaign('ruralAds')">Rural Ads ($300)</button><br>
+        <button onclick="campaign('nationalBroadcast')">National Broadcast ($400)</button><br>
+        <button onclick="campaign('debate')">Engage in Debate (Free)</button><br>
+        <button onclick="nextTurn()">Advance Turn</button>
+
+        <p id="status"></p>
+    </div>
+
+    <div id="chart_div"></div>
+
+    <script>
+        let funds = 10000;
+        let urbanSupporters = 100;
+        let suburbanSupporters = 100;
+        let ruralSupporters = 100;
+        let opponentUrban = 100;
+        let opponentSuburban = 100;
+        let opponentRural = 100;
+        let turn = 1;
+        let history = [["Turn", "Your Urban", "Your Suburban", "Your Rural", "Opponent Urban", "Opponent Suburban", "Opponent Rural"]];
+
+        google.charts.load("current", {packages:["corechart"]});
+
+        function campaign(action) {
+            if (turn > 50) return;
+
+            let effect = Math.floor(Math.random() * 12) + 8; 
+
+            if (action === "urbanRally" && funds >= 2000) {
+                funds -= 2000;
+                urbanSupporters += effect + Math.floor(Math.random() * 6);
+            } else if (action === "suburbanRally" && funds >= 2000) {
+                funds -= 2000;
+                suburbanSupporters += effect + Math.floor(Math.random() * 6);
+            } else if (action === "ruralRally" && funds >= 2000) {
+                funds -= 2000;
+                ruralSupporters += effect + Math.floor(Math.random() * 6);
+            } else if (action === "urbanAds" && funds >= 3000) {
+                funds -= 3000;
+                urbanSupporters += effect + Math.floor(Math.random() * 12);
+            } else if (action === "suburbanAds" && funds >= 3000) {
+                funds -= 3000;
+                suburbanSupporters += effect + Math.floor(Math.random() * 12);
+            } else if (action === "ruralAds" && funds >= 3000) {
+                funds -= 3000;
+                ruralSupporters += effect + Math.floor(Math.random() * 12);
+            } else if (action === "nationalBroadcast" && funds >= 4000) {
+                funds -= 4000;
+                urbanSupporters += Math.floor(effect / 2);
+                suburbanSupporters += effect;
+                ruralSupporters += Math.floor(effect / 2);
+            } else if (action === "debate") {
+                let yourDebateEffect = Math.floor(Math.random() * 18) - 6;
+                let opponentDebateEffect = Math.floor(Math.random() * 18) - 6;
+                urbanSupporters += yourDebateEffect;
+                suburbanSupporters += yourDebateEffect;
+                ruralSupporters += yourDebateEffect;
+                opponentUrban -= opponentDebateEffect;
+                opponentSuburban -= opponentDebateEffect;
+                opponentRural -= opponentDebateEffect;
+                document.getElementById("status").innerText = `Debate outcome: You gained ${yourDebateEffect}, Opponent lost ${opponentDebateEffect} supporters overall.`;
+            } else if (funds < 2000 && (action.includes("Rally") || action.includes("Ads") && funds < 3000) || (action === "nationalBroadcast" && funds < 4000)) {
+                alert("Not enough funds!");
+                return;
+            }
+
+            updateUI();
+        }
+
+        function nextTurn() {
+            if (turn >= 50) {
+                let yourTotal = urbanSupporters + suburbanSupporters + ruralSupporters;
+                let opponentTotal = opponentUrban + opponentSuburban + opponentRural;
+                let result = yourTotal > opponentTotal ? "You secured the Victory Road!" : (yourTotal < opponentTotal ? "Your opponent claimed the election!" : "It's a hard-fought tie!");
+                document.getElementById("status").innerText = result;
+                return;
+            }
+
+            opponentUrban += Math.floor(Math.random() * 18);
+            opponentSuburban += Math.floor(Math.random() * 18);
+            opponentRural += Math.floor(Math.random() * 18);
+            urbanSupporters += Math.floor(Math.random() * 9);
+            suburbanSupporters += Math.floor(Math.random() * 9);
+            ruralSupporters += Math.floor(Math.random() * 9);
+
+            turn++;
+            history.push([turn, urbanSupporters, suburbanSupporters, ruralSupporters, opponentUrban, opponentSuburban, opponentRural]);
+            updateUI();
+            drawChart();
+        }
+
+        function updateUI() {
+            document.getElementById("funds").innerText = funds;
+            document.getElementById("urbanSupporters").innerText = urbanSupporters;
+            document.getElementById("suburbanSupporters").innerText = suburbanSupporters;
+            document.getElementById("ruralSupporters").innerText = ruralSupporters;
+            document.getElementById("opponentUrban").innerText = opponentUrban;
+            document.getElementById("opponentSuburban").innerText = opponentSuburban;
+            document.getElementById("opponentRural").innerText = opponentRural;
+            document.getElementById("turn").innerText = turn;
+            document.getElementById("status").innerText = ""; // Clear status after action/turn
+        }
+
+        function drawChart() {
+            let data = google.visualization.arrayToDataTable(history);
+            let options = {
+                title: "Supporter Trends Across Regions",
+                curveType: "function",
+                legend: { position: "bottom" },
+                colors: ['#4caf50', '#2196f3', '#f44336', '#81c784', '#64b5f6', '#ef5350'], // Green, Blue, Red variations
+                series: {
+                    0: { label: 'Your Urban' },
+                    1: { label: 'Your Suburban' },
+                    2: { label: 'Your Rural' },
+                    3: { label: 'Opponent Urban', lineDashStyle: [4, 4] },
+                    4: { label: 'Opponent Suburban', lineDashStyle: [4, 4] },
+                    5: { label: 'Opponent Rural', lineDashStyle: [4, 4] }
+                },
+                hAxis: { title: 'Turn' },
+                vAxis: { title: 'Supporters' }
+            };
+            let chart = new google.visualization.LineChart(document.getElementById("chart_div"));
+            chart.draw(data, options);
+        }
+
+        updateUI();
+    </script>
+
+</body>
+</html>
