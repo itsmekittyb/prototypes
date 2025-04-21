@@ -38,6 +38,11 @@
             vertical-align: middle;
             margin-right: 5px;
         }
+        #build-status {
+            color: #d32f2f; 
+            font-weight: bold;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -135,11 +140,6 @@
             cell.appendChild(building);
         }
 
-        function setSelectedBuilding(buildingType) {
-            selectedBuilding = buildingType;
-            console.log(`Selected building: ${selectedBuilding}`);
-        }
-
         function handleCellClick(row, col) {
             if (selectedBuilding && !cityGrid[row][col]) {
                 const cost = buildingCosts[selectedBuilding];
@@ -148,11 +148,22 @@
                     cityGrid[row][col] = selectedBuilding;
                     createGrid(); // Re-render the grid to show the new building
                     selectedBuilding = null;
+                    buildStatusDisplay.textContent = ''; // Clear any previous status message
                     updateUI();
                 } else {
-                    alert("Not enough materials to build a " + selectedBuilding.split('-')[0]);
+                    buildStatusDisplay.textContent = `Not enough materials to build a ${selectedBuilding.split('-')[0]}`;
                 }
+            } else if (selectedBuilding) {
+                buildStatusDisplay.textContent = 'Cell is already occupied.';
+            } else {
+                buildStatusDisplay.textContent = ''; // Clear status if no building is selected
             }
+        }
+
+        function setSelectedBuilding(buildingType) {
+            selectedBuilding = buildingType;
+            buildStatusDisplay.textContent = ''; 
+            console.log(`Selected building: ${selectedBuilding}`);
         }
 
         function nextTurn() {
